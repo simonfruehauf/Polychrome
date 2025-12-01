@@ -1,0 +1,5 @@
+{
+  "name": "Polychrome",
+  "description": "Free Hi-Fi audio streaming utilizing Tidal APIs with local and cloud playlist management.",
+  "requestFramePermissions": []
+}
