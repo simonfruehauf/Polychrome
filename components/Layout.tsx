@@ -26,11 +26,10 @@ declare global {
     }
 }
 
-// NOTE: Replace this with your actual Client ID from Google Cloud Console.
-// When building for production, use process.env.REACT_APP_GOOGLE_CLIENT_ID
-const GOOGLE_CLIENT_ID = typeof process !== 'undefined' && process.env?.REACT_APP_GOOGLE_CLIENT_ID 
-    ? process.env.REACT_APP_GOOGLE_CLIENT_ID 
-    : 'YOUR_GOOGLE_CLIENT_ID_HERE';
+// NOTE: When building with Vite, use import.meta.env.VITE_GOOGLE_CLIENT_ID
+// Fix: Cast import.meta to any to resolve TS error about missing env property
+const GOOGLE_CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID || '63434169086-8mcheesofd88bic8ktemlqmhkho5b801.apps.googleusercontent.com
+';
 
 const Layout: React.FC = () => {
     const { currentTrack } = usePlayer();
@@ -57,8 +56,8 @@ const Layout: React.FC = () => {
             return;
         }
 
-        if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID_HERE') {
-            alert("Please configure a valid Google Client ID in the code.");
+        if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID_HERE') {
+            alert("Please configure a valid Google Client ID in the code or environment variables.");
             return;
         }
 
