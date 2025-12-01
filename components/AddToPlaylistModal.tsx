@@ -1,21 +1,12 @@
-import React, { useState } from 'react';
+import LazyImage from './LazyImage';
 import { useLibrary } from '../context/LibraryContext';
 import { X } from 'lucide-react';
 import { api } from '../services/api';
 
 const AddToPlaylistModal: React.FC = () => {
-    const { addToPlaylistModalTrack, closeAddToPlaylistModal, playlists, createPlaylist, addToPlaylist } = useLibrary();
-    const [newPlaylistName, setNewPlaylistName] = useState('');
-    const [isCreating, setIsCreating] = useState(false);
+    const { addToPlaylistModalTrack, closeAddToPlaylistModal, playlists, openCreatePlaylistModal, addToPlaylist } = useLibrary();
 
     if (!addToPlaylistModalTrack) return null;
-
-    const handleCreate = () => {
-        if (newPlaylistName.trim()) {
-            createPlaylist(newPlaylistName, [addToPlaylistModalTrack]);
-            closeAddToPlaylistModal();
-        }
-    };
 
     return (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4" onClick={closeAddToPlaylistModal}>
@@ -29,7 +20,7 @@ const AddToPlaylistModal: React.FC = () => {
                 </div>
                 
                 <div className="p-4 flex items-center gap-4 bg-neutral-800/30">
-                     <img 
+                     <LazyImage 
                         src={api.getCoverUrl(addToPlaylistModalTrack.album?.cover, '160')} 
                         alt=""
                         className="w-12 h-12 rounded object-cover"
@@ -52,7 +43,7 @@ const AddToPlaylistModal: React.FC = () => {
                         >
                             <div className="w-10 h-10 bg-neutral-800 flex items-center justify-center rounded overflow-hidden">
                                 {p.tracks.length > 0 && p.tracks[0].album?.cover ? (
-                                     <img src={api.getCoverUrl(p.tracks[0].album.cover, '80')} className="w-full h-full object-cover" />
+                                     <LazyImage src={api.getCoverUrl(p.tracks[0].album.cover, '80')} className="w-full h-full object-cover" />
                                 ) : (
                                     <div className="text-xs text-neutral-500">List</div> 
                                 )}
@@ -65,26 +56,15 @@ const AddToPlaylistModal: React.FC = () => {
                     ))}
                 </div>
                 <div className="p-4 border-t border-neutral-800">
-                    {!isCreating ? (
-                        <button 
-                            onClick={() => setIsCreating(true)}
-                            className="w-full py-2 bg-white text-black font-bold rounded-full hover:scale-105 transition"
-                        >
-                            New Playlist
-                        </button>
-                    ) : (
-                        <div className="flex gap-2">
-                            <input 
-                                autoFocus
-                                className="flex-1 bg-neutral-800 border border-neutral-700 rounded px-3 text-sm text-white focus:outline-none focus:border-white"
-                                placeholder="Playlist name"
-                                value={newPlaylistName}
-                                onChange={e => setNewPlaylistName(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && handleCreate()}
-                            />
-                            <button onClick={handleCreate} className="px-4 bg-white text-black font-bold rounded hover:bg-neutral-200">Add</button>
-                        </div>
-                    )}
+                    <button 
+                        onClick={() => {
+                            openCreatePlaylistModal([addToPlaylistModalTrack]);
+                            closeAddToPlaylistModal();
+                        }}
+                        className="w-full py-2 bg-white text-black font-bold rounded-full hover:scale-105 transition"
+                    >
+                        New Playlist
+                    </button>
                 </div>
             </div>
         </div>

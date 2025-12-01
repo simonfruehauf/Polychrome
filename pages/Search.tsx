@@ -7,6 +7,8 @@ import { usePlayer } from '../context/PlayerContext';
 import { useLibrary } from '../context/LibraryContext';
 import { formatDuration } from '../services/utils';
 
+import LazyImage from '../components/LazyImage';
+
 const SearchPage: React.FC = () => {
     const [searchParams] = useSearchParams();
     const query = searchParams.get('q') || '';
@@ -45,8 +47,7 @@ const SearchPage: React.FC = () => {
             }
         };
 
-        const debounce = setTimeout(fetchResults, 300);
-        return () => clearTimeout(debounce);
+        fetchResults();
     }, [query]);
 
     if (!query) {
@@ -74,7 +75,7 @@ const SearchPage: React.FC = () => {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
                         {artists.slice(0, 6).map((artist) => (
                             <Link to={`/artist/${artist.id}`} key={artist.id} className="group flex flex-col items-center cursor-pointer hover:bg-neutral-800/50 p-4 rounded-xl transition">
-                                <img 
+                                <LazyImage 
                                     src={api.getArtistPictureUrl(artist.picture, '320')} 
                                     alt={artist.name} 
                                     className="w-32 h-32 rounded-full object-cover mb-4 shadow-lg group-hover:scale-105 transition duration-300"
@@ -99,7 +100,7 @@ const SearchPage: React.FC = () => {
                         {albums.slice(0, 10).map((album) => (
                             <Link to={`/album/${album.id}`} key={album.id} className="group cursor-pointer bg-neutral-800/30 hover:bg-neutral-800 p-4 rounded-xl transition">
                                 <div className="relative aspect-square mb-4 rounded-md overflow-hidden shadow-lg">
-                                    <img 
+                                    <LazyImage 
                                         src={api.getCoverUrl(album.cover, '640')} 
                                         alt={album.title} 
                                         className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
@@ -130,7 +131,7 @@ const SearchPage: React.FC = () => {
                             >
                                 <div className="flex items-center flex-1 overflow-hidden gap-4">
                                     <div className="relative w-12 h-12 shrink-0">
-                                            <img 
+                                            <LazyImage 
                                             src={api.getCoverUrl(track.album?.cover, '160')} 
                                             alt={track.title} 
                                             className="w-full h-full rounded object-cover"

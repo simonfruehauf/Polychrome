@@ -6,9 +6,11 @@ import { Play, Plus, Trash2, ListMusic, ListPlus } from 'lucide-react';
 import { formatDuration } from '../services/utils';
 import { api } from '../services/api';
 
+import LazyImage from '../components/LazyImage';
+
 const PlaylistDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const { getPlaylist, deletePlaylist, openAddToPlaylistModal } = useLibrary();
+    const { getPlaylist, openDeleteModal, openAddToPlaylistModal } = useLibrary();
     const { playContext, addToQueue } = usePlayer();
 
     const playlist = id ? getPlaylist(id) : undefined;
@@ -23,7 +25,7 @@ const PlaylistDetails: React.FC = () => {
              <div className="flex flex-col md:flex-row items-end gap-8 mb-10 pb-6 bg-gradient-to-b from-neutral-800/20 to-transparent">
                 <div className="w-56 h-56 bg-neutral-800 rounded-lg shadow-2xl flex items-center justify-center">
                     {playlist.tracks.length > 0 && playlist.tracks[0].album?.cover ? (
-                        <img src={api.getCoverUrl(playlist.tracks[0].album.cover, '640')} className="w-full h-full object-cover rounded-lg" />
+                        <LazyImage src={api.getCoverUrl(playlist.tracks[0].album.cover, '640')} className="w-full h-full object-cover rounded-lg" />
                     ) : (
                         <ListMusic size={64} className="text-neutral-600" />
                     )}
@@ -49,16 +51,15 @@ const PlaylistDetails: React.FC = () => {
                         
                         <button 
                             onClick={() => {
-                                if(confirm('Delete this playlist?')) {
-                                    deletePlaylist(playlist.id);
+                                if(playlist) {
+                                    openDeleteModal(playlist);
                                     // ideally navigate away
                                 }
                             }}
                             className="text-neutral-400 hover:text-red-500 px-4 py-3 transition ml-auto"
                         >
                            <Trash2 size={24} />
-                        </button>
-                    </div>
+                        </button>                    </div>
                 </div>
             </div>
 
@@ -76,7 +77,7 @@ const PlaylistDetails: React.FC = () => {
                              <div className="w-8 text-center text-neutral-500 group-hover:text-white mr-4">
                                 {i + 1}
                             </div>
-                            <img 
+                            <LazyImage 
                                 src={api.getCoverUrl(track.album?.cover, '80')} 
                                 className="w-10 h-10 rounded mr-4 object-cover"
                                 alt=""

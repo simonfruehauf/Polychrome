@@ -1,13 +1,18 @@
 import React from 'react';
 import { useLibrary } from '../context/LibraryContext';
 import { usePlayer } from '../context/PlayerContext';
-import { Play, Trash2, ListMusic } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import { Play, Trash2, ListMusic, Cloud, CloudCheck, CheckCircle } from 'lucide-react';
 import { api } from '../services/api';
 import { Link } from 'react-router-dom';
 
+import LazyImage from '../components/LazyImage';
+
 const Library: React.FC = () => {
-    const { playlists, deletePlaylist, createPlaylist } = useLibrary();
+    const { playlists, openDeleteModal, openCreatePlaylistModal, syncPlaylistToGoogle } = useLibrary();
     const { playTrack, userQueue, contextQueue, contextIndex } = usePlayer();
+    const { showToast } = useToast();
+    const [syncingId, setSyncingId] = React.useState<string | null>(null);
 
     // A simple function to create a playlist from current queue
     const createPlaylistFromQueue = () => {
@@ -15,10 +20,24 @@ const Library: React.FC = () => {
         const remainingContext = contextQueue.slice(contextIndex + 1);
         const combined = [...userQueue, ...remainingContext];
         
-        if (combined.length === 0) return alert("Queue is empty!");
-        const name = prompt("Name for queue playlist:");
-        if(name) {
-            createPlaylist(name, combined);
+        if (combined.length === 0) {
+            showToast("Queue is empty!");
+            return;
+        }
+        openCreatePlaylistModal(combined);
+    };
+
+    const handleSyncPlaylist = async (playlistId: string) => {
+        setSyncingId(playlistId);
+        try {
+            await syncPlaylistToGoogle(playlistId);
+            const playlist = playlists.find(p => p.id === playlistId);
+            showToast(`✓ "${playlist?.name}" synced to Google Drive`);
+        } catch (error) {
+            showToast('Failed to sync playlist');
+            console.error(error);
+        } finally {
+            setSyncingId(null);
         }
     };
 
@@ -40,13 +59,18 @@ const Library: React.FC = () => {
                         <Link to={`/playlist/${playlist.id}`} className="block">
                             <div className="relative aspect-square bg-neutral-900 rounded-md mb-4 flex items-center justify-center overflow-hidden">
                                 {playlist.tracks.length > 0 && playlist.tracks[0].album?.cover ? (
-                                    <img src={api.getCoverUrl(playlist.tracks[0].album.cover, '640')} className="w-full h-full object-cover opacity-70 group-hover:opacity-50 transition" />
+                                    <LazyImage src={api.getCoverUrl(playlist.tracks[0].album.cover, '640')} className="w-full h-full object-cover opacity-70 group-hover:opacity-50 transition" />
                                 ) : (
                                     <ListMusic size={48} className="text-neutral-700" />
                                 )}
                             </div>
                             
-                            <h3 className="font-bold text-lg truncate">{playlist.name}</h3>
+                            <h3 className="font-bold text-lg truncate flex items-center gap-2">
+                                {playlist.name}
+                                {playlist.syncedToGoogle && (
+                                    <CheckCircle size={16} className="text-green-400 shrink-0" title="Synced to Google Drive" />
+                                )}
+                            </h3>
                             <p className="text-sm text-neutral-400">{playlist.tracks.length} tracks</p>
                         </Link>
                         
@@ -62,14 +86,26 @@ const Library: React.FC = () => {
                              </button>
                         </div>
                         
+<button onClick={() => openDeleteModal(playlist)} className="p-2 text-neutral-400 hover:text-white transition">
+    <Trash2 size={16} />
+</button>
+
                         <button 
                             onClick={(e) => {
-                                e.preventDefault(); 
-                                if(confirm("Delete playlist?")) deletePlaylist(playlist.id);
-                            }} 
-                            className="absolute top-7 right-7 p-2 bg-black/50 rounded-full text-neutral-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"
+                                e.preventDefault();
+                                handleSyncPlaylist(playlist.id);
+                            }}
+                            disabled={syncingId === playlist.id}
+                            className="absolute bottom-7 right-7 p-2 bg-black/50 rounded-full text-neutral-400 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition disabled:opacity-50"
+                            title={playlist.syncedToGoogle ? "Synced to Google Drive" : "Sync to Google Drive"}
                         >
-                            <Trash2 size={16} />
+                            {syncingId === playlist.id ? (
+                                <Cloud size={16} className="text-blue-400 animate-sync-pulse" />
+                            ) : playlist.syncedToGoogle ? (
+                                <CloudCheck size={16} className="text-green-400 animate-sync-check" />
+                            ) : (
+                                <Cloud size={16} />
+                            )}
                         </button>
                     </div>
                 ))}

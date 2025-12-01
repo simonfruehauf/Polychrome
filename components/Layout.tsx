@@ -6,6 +6,9 @@ import QueueSidebar from './QueueSidebar';
 import { Search, Library, LogIn, Music, Compass, Plus, List } from 'lucide-react';
 import { usePlayer } from '../context/PlayerContext';
 import { useLibrary } from '../context/LibraryContext';
+import { googleDriveService } from '../services/googleDrive';
+
+import useDebounce from '../hooks/useDebounce';
 
 // Define the window.google interface
 declare global {
@@ -26,30 +29,48 @@ declare global {
     }
 }
 
+import LazyImage from './LazyImage';
+
 // NOTE: Replace this with your actual Client ID from Google Cloud Console.
-// When building for production, use process.env.REACT_APP_GOOGLE_CLIENT_ID
-const GOOGLE_CLIENT_ID = typeof process !== 'undefined' && process.env?.REACT_APP_GOOGLE_CLIENT_ID 
-    ? process.env.REACT_APP_GOOGLE_CLIENT_ID 
-    : 'YOUR_GOOGLE_CLIENT_ID_HERE';
+// Use VITE_GOOGLE_CLIENT_ID environment variable
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID_HERE';
 
 const Layout: React.FC = () => {
     const { currentTrack } = usePlayer();
-    const { playlists, createPlaylist } = useLibrary();
-    const [user, setUser] = useState<{name: string, email: string, picture?: string} | null>(null);
+    const { playlists, openCreatePlaylistModal, loadPlaylistsFromGoogle, syncAllPlaylistsToGoogle } = useLibrary();
+    const [user, setUser] = useState<{name: string, email: string, picture?: string, accessToken?: string} | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const debouncedSearchTerm = useDebounce(searchQuery, 300);
+    const [hasLoadedPlaylists, setHasLoadedPlaylists] = useState(false);
     const navigate = useNavigate();
 
     // Load user from local storage on mount
     useEffect(() => {
         const savedUser = localStorage.getItem('opentidal_user');
-        if (savedUser) {
+        if (savedUser && !hasLoadedPlaylists) {
             try {
-                setUser(JSON.parse(savedUser));
+                const userData = JSON.parse(savedUser);
+                setUser(userData);
+                // Restore Google Drive service access token if available
+                if (userData.accessToken) {
+                    googleDriveService.setAccessToken(userData.accessToken);
+                    // Don't load playlists here - they're already in localStorage
+                    // Just mark that we've loaded to prevent re-checking
+                    setHasLoadedPlaylists(true);
+                }
             } catch (e) {
                 console.error("Failed to parse user data", e);
             }
         }
     }, []);
+
+    useEffect(() => {
+        if (debouncedSearchTerm.trim()) {
+            navigate(`/search?q=${encodeURIComponent(debouncedSearchTerm)}`);
+        } else {
+            // Optional: navigate somewhere else or clear results when search is cleared
+        }
+    }, [debouncedSearchTerm, navigate]);
 
     const handleGoogleLogin = () => {
         if (typeof window === 'undefined' || !window.google) {
@@ -64,9 +85,12 @@ const Layout: React.FC = () => {
 
         const client = window.google.accounts.oauth2.initTokenClient({
             client_id: GOOGLE_CLIENT_ID,
-            scope: 'email profile openid',
+            scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file email profile openid',
             callback: async (tokenResponse: any) => {
                 if (tokenResponse && tokenResponse.access_token) {
+                    // Set the access token for Google Drive service
+                    googleDriveService.setAccessToken(tokenResponse.access_token);
+                    
                     try {
                         const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
                             headers: {
@@ -79,10 +103,21 @@ const Layout: React.FC = () => {
                             const userProfile = {
                                 name: userData.name,
                                 email: userData.email,
-                                picture: userData.picture
+                                picture: userData.picture,
+                                accessToken: tokenResponse.access_token
                             };
                             setUser(userProfile);
                             localStorage.setItem('opentidal_user', JSON.stringify(userProfile));
+                            
+                            // Sync all local playlists to Google Drive first
+                            try {
+                                await syncAllPlaylistsToGoogle();
+                            } catch (error) {
+                                console.error("Failed to sync playlists on login:", error);
+                            }
+                            
+                            // Then load any playlists from Google Drive
+                            await loadPlaylistsFromGoogle();
                         }
                     } catch (error) {
                         console.error("Failed to fetch user profile", error);
@@ -95,20 +130,11 @@ const Layout: React.FC = () => {
     };
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const query = e.target.value;
-        setSearchQuery(query);
-        if (query.trim()) {
-            navigate(`/search?q=${encodeURIComponent(query)}`);
-        } else if (query.trim() === '') {
-             // Optional behavior on empty search
-        }
+        setSearchQuery(e.target.value);
     };
 
     const handleCreatePlaylist = () => {
-        const name = prompt("Enter playlist name:");
-        if (name) {
-            createPlaylist(name);
-        }
+        openCreatePlaylistModal();
     };
 
     return (
@@ -171,7 +197,7 @@ const Layout: React.FC = () => {
                     {user ? (
                         <div className="flex items-center justify-center lg:justify-start gap-3">
                              {user.picture ? (
-                                 <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full shrink-0" />
+                                 <LazyImage src={user.picture} alt={user.name} className="w-8 h-8 rounded-full shrink-0" />
                              ) : (
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 flex items-center justify-center text-xs font-bold shrink-0">
                                     {user.name.charAt(0)}

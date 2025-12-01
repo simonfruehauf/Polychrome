@@ -10,11 +10,16 @@ import Explore from './pages/Explore';
 import ArtistDetailsPage from './pages/ArtistDetails';
 import AlbumDetailsPage from './pages/AlbumDetails';
 import PlaylistDetails from './pages/PlaylistDetails';
+import ConfirmDeleteModal from './components/ConfirmDeleteModal';
+
+import CreatePlaylistModal from './components/CreatePlaylistModal';
 
 const App: React.FC = () => {
   return (
     <LibraryProvider>
         <ToastProvider>
+            <ConfirmDeleteModal />
+            <CreatePlaylistModal />
             <PlayerProvider>
                 <Router>
                     <Routes>

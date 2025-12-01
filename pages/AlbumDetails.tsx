@@ -7,6 +7,8 @@ import { useLibrary } from '../context/LibraryContext';
 import { Play, Plus, Clock, ListPlus } from 'lucide-react';
 import { formatDuration } from '../services/utils';
 
+import LazyImage from '../components/LazyImage';
+
 const AlbumDetailsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [data, setData] = useState<AlbumDetails | null>(null);
@@ -34,7 +36,7 @@ const AlbumDetailsPage: React.FC = () => {
         <div>
             {/* Header */}
             <div className="flex flex-col md:flex-row items-end gap-8 mb-10 pb-6">
-                <img 
+                <LazyImage 
                     src={api.getCoverUrl(data.album.cover, '640')} 
                     alt={data.album.title} 
                     className="w-56 h-56 rounded-lg shadow-2xl object-cover"
