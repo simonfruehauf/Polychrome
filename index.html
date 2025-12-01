@@ -2,9 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/Polychrome/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Polychrome</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
@@ -28,9 +28,29 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #555; 
       }
+      /* Sync icon animations */
+      @keyframes syncPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+      }
+      @keyframes syncCheck {
+        0% { 
+          transform: scale(0.8);
+          opacity: 0;
+        }
+        100% { 
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .animate-sync-pulse {
+        animation: syncPulse 1.5s ease-in-out infinite;
+      }
+      .animate-sync-check {
+        animation: syncCheck 0.3s ease-out;
+      }
     </style>
 
-<link rel="stylesheet" href="/index.css">
   <script type="importmap">
 {
   "imports": {
@@ -42,7 +62,8 @@
   }
 }
 </script>
-  <script type="module" crossorigin src="/Polychrome/assets/index-usaCuf8T.js"></script>
+  <script type="module" crossorigin src="/Polychrome/assets/index-DKePrJ1e.js"></script>
+  <link rel="stylesheet" crossorigin href="/Polychrome/assets/index-CPxDCCmd.css">
 </head>
   <body>
     <div id="root"></div>
