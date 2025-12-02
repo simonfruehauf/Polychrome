@@ -95,25 +95,38 @@ const Layout: React.FC = () => {
         }
 
         try {
+            console.log('Initializing Google Token Client...');
+            // Check if window.google is definitely available
+            if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
+                console.error("Google Objects missing despite check:", window.google);
+                alert("Critical Error: Google Identity Services not fully loaded.");
+                return;
+            }
+
             const client = window.google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CLIENT_ID,
                 scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file email profile openid',
-                redirect_uri: window.location.origin, // Use redirect flow instead of popup
+                // redirect_uri removed: strictly for popup flow (Token Model)
                 error_callback: (error: any) => {
-                    console.error("Google Sign-In error:", error);
+                    console.error("Google Sign-In error_callback triggered:", error);
                     alert(`Google Sign-In error: ${error.type} - ${error.message}`);
                 },
                 callback: async (tokenResponse: any) => {
-                    console.log('Google callback invoked. tokenResponse:', tokenResponse);
+                    console.log('Google callback invoked. Full tokenResponse:', tokenResponse);
 
-                    if (tokenResponse && tokenResponse.error) {
-                        console.error("Google authentication error:", tokenResponse.error);
-                        alert(`Google authentication error: ${tokenResponse.error}`);
+                    if (!tokenResponse) {
+                        console.error("Google callback received NO response object.");
                         return;
                     }
 
-                    if (tokenResponse && tokenResponse.access_token) {
-                        console.log('Google tokenResponse received:', tokenResponse);
+                    if (tokenResponse.error) {
+                        console.error("Google authentication error in callback:", tokenResponse.error);
+                        alert(`Google authentication error: ${tokenResponse.error} - ${tokenResponse.error_description || ''}`);
+                        return;
+                    }
+
+                    if (tokenResponse.access_token) {
+                        console.log('Valid access_token received. Fetching user info...');
                         
                         try {
                             const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
@@ -122,6 +135,8 @@ const Layout: React.FC = () => {
                                 }
                             });
                             
+                            console.log('User Info Response Status:', userInfoResponse.status);
+
                             if (userInfoResponse.ok) {
                                 const userData = await userInfoResponse.json();
                                 console.log('Google user info fetched:', userData);
@@ -144,17 +159,18 @@ const Layout: React.FC = () => {
                                 // Then load any playlists from Google Drive
                                 await loadPlaylistsFromGoogle();
                             } else {
-                                console.error("Failed to fetch user profile:", userInfoResponse.status, userInfoResponse.statusText);
+                                const errorText = await userInfoResponse.text();
+                                console.error("Failed to fetch user profile:", userInfoResponse.status, userInfoResponse.statusText, errorText);
                             }
                         } catch (error) {
-                            console.error("Failed to fetch user profile", error);
+                            console.error("Exception while fetching user profile:", error);
                         }
                     } else {
-                        console.warn("Google tokenResponse did not contain access_token or was invalid:", tokenResponse);
+                        console.warn("Google tokenResponse missing access_token:", tokenResponse);
                     }
                 },
             });
-            console.log('Calling client.requestAccessToken() with redirect...');
+            console.log('Calling client.requestAccessToken()...');
             client.requestAccessToken();
         } catch (error: any) {
             console.error("Error during Google authentication initiation:", error);
