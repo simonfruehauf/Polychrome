@@ -85,7 +85,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const clamped = Math.max(0, Math.min(1, val));
     setVolumeState(clamped);
     if (audioRef.current) {
-        audioRef.current.volume = clamped;
+        // Apply a quadratic curve for a more natural perceived logarithmic response
+        audioRef.current.volume = clamped * clamped;
     }
   }, []);
 
