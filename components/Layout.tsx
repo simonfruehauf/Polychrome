@@ -85,6 +85,7 @@ const Layout: React.FC = () => {
             scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file email profile openid',
             callback: async (tokenResponse: any) => {
                 if (tokenResponse && tokenResponse.access_token) {
+                    console.log('Google tokenResponse received:', tokenResponse);
                     // Set the access token for Google Drive service
                     googleDriveService.setAccessToken(tokenResponse.access_token);
                     
@@ -97,6 +98,7 @@ const Layout: React.FC = () => {
                         
                         if (userInfoResponse.ok) {
                             const userData = await userInfoResponse.json();
+                            console.log('Google user info fetched:', userData);
                             const userProfile = {
                                 name: userData.name,
                                 email: userData.email,
