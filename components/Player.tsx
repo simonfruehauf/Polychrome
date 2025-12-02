@@ -1,9 +1,10 @@
-import React, { useState } from 'react'; // Added useState
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import { usePlayer } from '../context/PlayerContext';
 import { api } from '../services/api';
 import { formatDuration } from '../services/utils';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Volume1, VolumeX, ListMusic, Shuffle, Repeat, Repeat1, Loader2, Download } from 'lucide-react'; // Import Download icon
-import { downloadCurrentTrack } from '../services/downloads'; // Import downloadCurrentTrack
+import { Play, Pause, SkipBack, SkipForward, Volume2, Volume1, VolumeX, ListMusic, Shuffle, Repeat, Repeat1, Loader2, Download } from 'lucide-react';
+import { downloadCurrentTrack } from '../services/downloads';
 
 const Player: React.FC = () => {
   const { 
@@ -24,10 +25,11 @@ const Player: React.FC = () => {
     toggleQueue,
     isQueueOpen,
     isLoading,
-    quality // Get quality from usePlayer
+    quality
   } = usePlayer();
 
-  const [isDownloading, setIsDownloading] = useState(false); // New state for download loading
+  const [isDownloading, setIsDownloading] = useState(false);
+  const navigate = useNavigate(); // Initialize useNavigate
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!currentTrack) return;
@@ -57,6 +59,12 @@ const Player: React.FC = () => {
     }
   };
 
+  const handleArtistClick = () => {
+    if (currentTrack?.artist?.id) {
+        navigate(`/artist/${currentTrack.artist.id}`);
+    }
+  };
+
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-black border-t border-neutral-900 px-4 h-24 flex items-center justify-between z-50 text-white select-none">
       {/* Track Info */}
@@ -83,7 +91,10 @@ const Player: React.FC = () => {
           <div className="font-semibold text-sm truncate text-white min-h-[1.25rem]">
               {currentTrack?.title || ''}
           </div>
-          <div className="text-xs text-neutral-400 truncate hover:underline cursor-pointer hover:text-white transition min-h-[1rem]">
+          <div 
+            className="text-xs text-neutral-400 truncate hover:underline cursor-pointer hover:text-white transition min-h-[1rem]"
+            onClick={handleArtistClick} // Add onClick handler here
+          >
             {currentTrack?.artist?.name || ''}
           </div>
         </div>
