@@ -142,6 +142,7 @@ const Layout: React.FC = () => {
             },
         });
 
+            console.log('Calling client.requestAccessToken()...');
             client.requestAccessToken();
         } catch (error: any) {
             console.error("Error during Google authentication initiation:", error);
