@@ -1,5 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Settings } from '../services/utils';
+import { api } from '../services/api';
+import { usePlayer } from '../context/PlayerContext';
+import { lyricsSettings } from '../services/storage'; // Import only lyricsSettings
 
 interface MirrorStatus {
     url: string;
@@ -7,36 +10,157 @@ interface MirrorStatus {
 }
 
 const SettingsPage: React.FC = () => {
+    const { quality, setQuality } = usePlayer();
     const [mirrors, setMirrors] = useState<MirrorStatus[]>([]);
-    const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+    const [isRefreshingMirrors, setIsRefreshingMirrors] = useState<boolean>(false);
+    const [isClearingCache, setIsClearingCache] = useState<boolean>(false);
+    const [downloadLyricsWithTracks, setDownloadLyricsWithTracks] = useState<boolean>(lyricsSettings.shouldDownloadLyrics());
+    const [filenameTemplate, setFilenameTemplate] = useState<string>(localStorage.getItem('filename-template') || '{trackNumber} - {artist} - {title}');
+    const [zipFolderTemplate, setZipFolderTemplate] = useState<string>(localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist} - polychrome.tf');
+
+
     const settings = Settings.getInstance();
 
+    // Mirror Status Effect
     useEffect(() => {
         const handleMirrorsUpdate = (event: Event) => {
             const customEvent = event as CustomEvent<MirrorStatus[]>;
             setMirrors(customEvent.detail);
-            setIsRefreshing(false);
+            setIsRefreshingMirrors(false);
         };
 
-        // Initial load
-        setMirrors(settings.getSortedMirrors());
+        setMirrors(settings.getSortedMirrors()); // Initial load
 
         settings.addEventListener('mirrorsUpdated', handleMirrorsUpdate as EventListener);
 
         return () => {
             settings.removeEventListener('mirrorsUpdated', handleMirrorsUpdate as EventListener);
         };
-    }, []);
+    }, [settings]);
 
-    const handleRefresh = async () => {
-        setIsRefreshing(true);
+    const handleRefreshMirrors = async () => {
+        setIsRefreshingMirrors(true);
         await settings.refreshMirrors();
+    };
+
+
+
+    // Download Settings Handlers
+    const handleDownloadLyricsToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const checked = e.target.checked;
+        setDownloadLyricsWithTracks(checked);
+        lyricsSettings.setDownloadLyrics(checked);
+    };
+
+    const handleFilenameTemplateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setFilenameTemplate(value);
+        localStorage.setItem('filename-template', value);
+    };
+
+    const handleZipFolderTemplateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setZipFolderTemplate(value);
+        localStorage.setItem('zip-folder-template', value);
+    };
+
+
+    // Cache Management Handler
+    const handleClearCache = async () => {
+        setIsClearingCache(true);
+        try {
+            await api.clearCache(); // api.clearCache also clears IndexedDB
+            settings.clearCache(); // Clear cached speed tests etc. if any
+            alert('Cache cleared successfully!');
+        } catch (error) {
+            alert('Failed to clear cache.');
+            console.error('Failed to clear cache:', error);
+        } finally {
+            setIsClearingCache(false);
+        }
     };
 
     return (
         <div className="p-4 sm:p-6 lg:p-8">
-            <h1 className="text-3xl font-bold text-white mb-6">Settings</h1>
+            <h1 className="text-3xl font-bold text-white mb-8">Settings</h1>
 
+            {/* Playback Settings */}
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 mb-6">
+                <h2 className="text-2xl font-semibold text-white mb-4">Playback Settings</h2>
+                
+                <div className="mb-4">
+                    <label htmlFor="quality-select" className="block text-neutral-300 text-sm font-medium mb-2">Playback Quality</label>
+                    <select
+                        id="quality-select"
+                        className="block w-full sm:w-1/2 lg:w-1/3 p-2 bg-neutral-800 border border-neutral-700 rounded-md text-white focus:ring-green-500 focus:border-green-500"
+                        value={quality}
+                        onChange={(e) => setQuality(e.target.value as any)} // Cast to any to match Quality type
+                    >
+                        <option value="LOW">Low</option>
+                        <option value="HIGH">High</option>
+                        <option value="LOSSLESS">Lossless</option>
+                        <option value="HI_RES_LOSSLESS">Hi-Res Lossless</option>
+                    </select>
+                    <p className="text-neutral-500 text-xs mt-1">Changes the quality of streamed audio.</p>
+                </div>
+            </div>
+
+            {/* Download Settings */}
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 mb-6">
+                <h2 className="text-2xl font-semibold text-white mb-4">Download Settings</h2>
+                
+                <div className="flex items-center mb-4">
+                    <input
+                        type="checkbox"
+                        id="download-lyrics-toggle"
+                        className="h-4 w-4 text-green-600 focus:ring-green-500 border-neutral-700 rounded"
+                        checked={downloadLyricsWithTracks}
+                        onChange={handleDownloadLyricsToggle}
+                    />
+                    <label htmlFor="download-lyrics-toggle" className="ml-2 block text-neutral-300 text-sm font-medium">Download lyrics with tracks</label>
+                </div>
+
+                <div className="mb-4">
+                    <label htmlFor="filename-template-input" className="block text-neutral-300 text-sm font-medium mb-2">Track Filename Template</label>
+                    <input
+                        type="text"
+                        id="filename-template-input"
+                        className="block w-full sm:w-2/3 lg:w-1/2 p-2 bg-neutral-800 border border-neutral-700 rounded-md text-white focus:ring-green-500 focus:border-green-500"
+                        value={filenameTemplate}
+                        onChange={handleFilenameTemplateChange}
+                        placeholder="{trackNumber} - {artist} - {title}"
+                    />
+                    <p className="text-neutral-500 text-xs mt-1">Available placeholders: {'{trackNumber}, {artist}, {title}, {album}'}</p>
+                </div>
+
+                <div className="mb-4">
+                    <label htmlFor="zip-folder-template-input" className="block text-neutral-300 text-sm font-medium mb-2">ZIP Folder Template</label>
+                    <input
+                        type="text"
+                        id="zip-folder-template-input"
+                        className="block w-full sm:w-2/3 lg:w-1/2 p-2 bg-neutral-800 border border-neutral-700 rounded-md text-white focus:ring-green-500 focus:border-green-500"
+                        value={zipFolderTemplate}
+                        onChange={handleZipFolderTemplateChange}
+                        placeholder="{albumTitle} - {albumArtist} - polychrome.tf"
+                    />
+                    <p className="text-neutral-500 text-xs mt-1">Available placeholders: {'{albumTitle}, {albumArtist}, {year}'}</p>
+                </div>
+            </div>
+
+            {/* Cache Management */}
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 mb-6">
+                <h2 className="text-2xl font-semibold text-white mb-4">Cache Management</h2>
+                <p className="text-neutral-400 mb-4">Clear all cached API responses and streamed content data from your browser.</p>
+                <button 
+                    onClick={handleClearCache} 
+                    disabled={isClearingCache}
+                    className="bg-red-600 text-white font-bold py-2 px-4 rounded-full hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {isClearingCache ? 'Clearing...' : 'Clear All Cache'}
+                </button>
+            </div>
+
+            {/* Mirror Status (existing section, integrated) */}
             <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 mb-6">
                 <h2 className="text-2xl font-semibold text-white mb-4">Mirror Status</h2>
                 <p className="text-neutral-400 mb-4">
@@ -44,11 +168,11 @@ const SettingsPage: React.FC = () => {
                     You can manually refresh the latency check below.
                 </p>
                 <button 
-                    onClick={handleRefresh} 
-                    disabled={isRefreshing}
+                    onClick={handleRefreshMirrors} 
+                    disabled={isRefreshingMirrors}
                     className="bg-white text-black font-bold py-2 px-4 rounded-full hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {isRefreshing ? 'Refreshing...' : 'Refresh Mirror Latency'}
+                    {isRefreshingMirrors ? 'Refreshing...' : 'Refresh Mirror Latency'}
                 </button>
 
                 <div className="mt-6">
@@ -97,13 +221,7 @@ const SettingsPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Placeholder for "Currently Used Mirror" if implemented later */}
-            {/*
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6">
-                <h2 className="text-2xl font-semibold text-white mb-4">Currently Used Mirror</h2>
-                <p className="text-neutral-400">This feature is not yet implemented.</p>
-            </div>
-            */}
+
         </div>
     );
 };

@@ -19,7 +19,8 @@ interface PlayerContextType {
   repeatMode: RepeatMode;
   isQueueOpen: boolean;
   isLoading: boolean;
-  quality: Quality; // Add quality
+  quality: Quality;
+  audioRef: React.MutableRefObject<HTMLAudioElement | null>; // Exposed audioRef
   playTrack: (track: Track) => Promise<void>;
   playContext: (tracks: Track[], startIndex?: number, title?: string) => void;
   playContextTrack: (index: number) => void;
@@ -36,7 +37,7 @@ interface PlayerContextType {
   toggleShuffle: () => void;
   toggleRepeat: () => void;
   toggleQueue: () => void;
-  setQuality: (newQuality: Quality) => void; // Add setQuality
+  setQuality: (newQuality: Quality) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -398,8 +399,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       toggleRepeat,
       toggleQueue,
       isLoading,
-      quality, // Provide quality
-      setQuality // Provide setQuality
+      quality,
+      setQuality,
+      audioRef, // Provide audioRef
     }}>
       {children}
     </PlayerContext.Provider>

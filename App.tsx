@@ -12,7 +12,14 @@ import AlbumDetailsPage from './pages/AlbumDetails';
 import PlaylistDetails from './pages/PlaylistDetails';
 import ConfirmDeleteModal from './components/ConfirmDeleteModal';
 import CreatePlaylistModal from './components/CreatePlaylistModal';
-import SettingsPage from './pages/Settings'; // Import the new SettingsPage
+import SettingsPage from './pages/Settings';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+
+// New wrapper component for keyboard shortcuts
+const KeyboardShortcutsManager: React.FC = () => {
+  useKeyboardShortcuts();
+  return null; // This component doesn't render anything visible
+};
 
 const App: React.FC = () => {
   return (
@@ -22,6 +29,7 @@ const App: React.FC = () => {
             <CreatePlaylistModal />
             <PlayerProvider>
                 <Router>
+                    <KeyboardShortcutsManager /> {/* Moved inside Router */}
                     <Routes>
                         <Route path="/" element={<Layout />}>
                             <Route index element={<Navigate to="/explore" replace />} />
@@ -31,7 +39,7 @@ const App: React.FC = () => {
                             <Route path="artist/:id" element={<ArtistDetailsPage />} />
                             <Route path="album/:id" element={<AlbumDetailsPage />} />
                             <Route path="playlist/:id" element={<PlaylistDetails />} />
-                            <Route path="settings" element={<SettingsPage />} /> {/* Add the new route */}
+                            <Route path="settings" element={<SettingsPage />} />
                         </Route>
                     </Routes>
                 </Router>
