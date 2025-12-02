@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
       plugins: [react(), 
         tailwindcss()],
       define: {
-        'import.meta.env.VITE_GOOGLE_CLIENT_ID': JSON.stringify(env.VITE_GOOGLE_CLIENT_ID)
+        'import.meta.env.VITE_GOOGLE_CLIENT_ID': JSON.stringify(process.env.VITE_GOOGLE_CLIENT_ID)
       },
       resolve: {
         alias: {

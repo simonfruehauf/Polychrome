@@ -31,8 +31,6 @@ declare global {
 
 import LazyImage from './LazyImage';
 
-// NOTE: Replace this with your actual Client ID from Google Cloud Console.
-// Use VITE_GOOGLE_CLIENT_ID environment variable
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID_HERE';
 
 const Layout: React.FC = () => {
@@ -96,16 +94,53 @@ const Layout: React.FC = () => {
         }
 
         try {
-            const simpleCallback = (tokenResponse: any) => {
-                console.log('Simple callback executed. tokenResponse:', tokenResponse);
-            };
-
             const client = window.google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CLIENT_ID,
                 scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file email profile openid',
-                callback: simpleCallback,
+                callback: async (tokenResponse: any) => {
+                    console.log('Google callback invoked. tokenResponse:', tokenResponse);
+                    if (tokenResponse && tokenResponse.access_token) {
+                        console.log('Google tokenResponse received:', tokenResponse);
+                        
+                        try {
+                            const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                                headers: {
+                                    'Authorization': `Bearer ${tokenResponse.access_token}`
+                                }
+                            });
+                            
+                            if (userInfoResponse.ok) {
+                                const userData = await userInfoResponse.json();
+                                console.log('Google user info fetched:', userData);
+                                const userProfile = {
+                                    name: userData.name,
+                                    email: userData.email,
+                                    picture: userData.picture,
+                                    accessToken: tokenResponse.access_token
+                                };
+                                setUser(userProfile);
+                                localStorage.setItem('opentidal_user', JSON.stringify(userProfile));
+                                
+                                // Sync all local playlists to Google Drive first
+                                try {
+                                    await syncAllPlaylistsToGoogle();
+                                } catch (error) {
+                                    console.error("Failed to sync playlists on login:", error);
+                                }
+                                
+                                // Then load any playlists from Google Drive
+                                await loadPlaylistsFromGoogle();
+                            } else {
+                                console.error("Failed to fetch user profile:", userInfoResponse.status, userInfoResponse.statusText);
+                            }
+                        } catch (error) {
+                            console.error("Failed to fetch user profile", error);
+                        }
+                    } else {
+                        console.warn("Google tokenResponse did not contain access_token or was invalid:", tokenResponse);
+                    }
+                },
             });
-            console.log('Google client object created:', client);
             console.log('Calling client.requestAccessToken()...');
             client.requestAccessToken();
         } catch (error: any) {
