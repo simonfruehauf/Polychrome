@@ -330,7 +330,16 @@ export class LosslessAPI {
 
     async getArtist(artistId: string | number): Promise<ArtistDetails> {
         const cached = await this.cache.get<ArtistDetails>('artist', artistId);
-        if (cached) return cached;
+        if (cached) {
+            // If cached data has "Unknown Artist" but a new fetch might provide a name,
+            // we should re-fetch to try and get a better name.
+            // This is a heuristic to "heal" potentially incomplete cached data.
+            if (cached.name === 'Unknown Artist') {
+                this.cache.delete('artist', artistId); // Invalidate cache for this ID
+            } else {
+                return cached;
+            }
+        }
 
         // Fetch primary artist details first
         const primaryResponse = await this.fetchWithRetry(`/artist/?id=${artistId}`);
@@ -344,11 +353,7 @@ export class LosslessAPI {
 
         if (!rawArtist) throw new Error('Primary artist details not found.');
 
-        const artist: Artist = {
-            ...this.prepareArtist(rawArtist),
-            picture: rawArtist.picture || null,
-            name: rawArtist.name || 'Unknown Artist'
-        };
+        let artistName = rawArtist.name || 'Unknown Artist';
 
         // Fetch content data separately, and handle errors gracefully
         let albums: Album[] = [];
@@ -378,6 +383,12 @@ export class LosslessAPI {
                 if (isAlbum(item)) albumMap.set(item.id, this.prepareAlbum(item));
                 if (isTrack(item)) trackMap.set(item.id, this.prepareTrack(item));
 
+                // If artistName is still 'Unknown Artist', try to find a name from tracks/albums
+                if (artistName === 'Unknown Artist') {
+                    if (item.artist?.name) artistName = item.artist.name;
+                    else if (item.artists && item.artists.length > 0 && item.artists[0]?.name) artistName = item.artists[0].name;
+                }
+                
                 Object.values(value).forEach(nested => scan(nested, visited));
             };
 
@@ -396,6 +407,12 @@ export class LosslessAPI {
             // We can also set an error message here if we want to display it
             // on the ArtistDetailsPage related to content (not implemented now).
         }
+
+        const artist: Artist = {
+            ...this.prepareArtist(rawArtist),
+            picture: rawArtist.picture || null,
+            name: artistName // Use the potentially updated artistName
+        };
 
         const result = { ...artist, albums, tracks };
 
