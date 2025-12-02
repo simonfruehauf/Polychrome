@@ -144,9 +144,7 @@ const Layout: React.FC = () => {
             {/* Sidebar */}
             <aside className="w-20 lg:w-64 bg-black flex flex-col border-r border-neutral-900 z-40 transition-all duration-300 pb-28">
                 <div className="flex items-center justify-center lg:justify-start gap-3 h-20 px-4 lg:px-6">
-                    <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-2 rounded-lg shrink-0">
-                        <Music className="text-white" size={24} />
-                    </div>
+                    <img src="/Polychrome/favicon.svg" alt="Polychrome Logo" className="h-8 w-8 shrink-0" />
                     <span className="text-xl font-bold tracking-tight hidden lg:block bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
                         Polychrome
                     </span>
