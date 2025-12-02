@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import Player from './Player';
 import AddToPlaylistModal from './AddToPlaylistModal';
 import QueueSidebar from './QueueSidebar';
@@ -43,6 +43,7 @@ const Layout: React.FC = () => {
     const debouncedSearchTerm = useDebounce(searchQuery, 300);
     const [hasLoadedPlaylists, setHasLoadedPlaylists] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
 
     // Load user from local storage on mount
     useEffect(() => {
@@ -65,12 +66,8 @@ const Layout: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (debouncedSearchTerm.trim()) {
-            navigate(`/search?q=${encodeURIComponent(debouncedSearchTerm)}`);
-        } else {
-            // Optional: navigate somewhere else or clear results when search is cleared
-        }
-    }, [debouncedSearchTerm, navigate]);
+        // Removed automatic navigation on debouncedSearchTerm change
+    }, [debouncedSearchTerm, navigate, location.pathname]);
 
     const handleGoogleLogin = () => {
         if (typeof window === 'undefined' || !window.google) {
@@ -131,6 +128,13 @@ const Layout: React.FC = () => {
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(e.target.value);
+    };
+
+    const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && searchQuery.trim()) {
+            navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+            e.currentTarget.blur(); // Remove focus from input after search
+        }
     };
 
     const handleCreatePlaylist = () => {
@@ -246,6 +250,7 @@ const Layout: React.FC = () => {
                             type="text" 
                             value={searchQuery}
                             onChange={handleSearch}
+                            onKeyDown={handleSearchSubmit}
                             placeholder="Search for artists, albums, or tracks..." 
                             className="block w-full bg-neutral-800/50 border border-transparent text-white rounded-full py-3 pl-11 pr-4 placeholder-neutral-500 focus:bg-neutral-800 focus:outline-none focus:ring-1 focus:ring-white/20 transition-all text-sm"
                         />
