@@ -13,6 +13,7 @@ export const deriveTrackQuality = (track: Track): string => {
 };
 
 export const formatDuration = (seconds: number): string => {
+  if (isNaN(seconds)) return '0:00';
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -63,7 +64,6 @@ export const testMirrorLatency = async (mirrorUrl: string, useProxy: boolean): P
     try {
         const response = await fetch(finalUrl, { method: 'GET', mode: 'cors' });
         if (!response.ok) {
-            console.warn(`Mirror ${mirrorUrl} ${useProxy ? '(proxied)' : '(direct)'} returned status ${response.status}`);
             return { url: mirrorUrl, latency: Infinity, isProxied: useProxy };
         }
     } catch (error) {
@@ -124,9 +124,6 @@ export class Settings extends EventTarget {
             });
         
         this.lastSortTime = Date.now();
-        console.log('Mirrors sorted:', this.rawSortedMirrors.map(ml => 
-            `${ml.url} (${ml.latency === Infinity ? 'Failed' : ml.latency.toFixed(0) + 'ms'}${ml.isProxied ? ', proxied' : ''})`
-        ).join(', '));
         this.dispatchEvent(new CustomEvent('mirrorsUpdated', { detail: this.rawSortedMirrors }));
     }
 
