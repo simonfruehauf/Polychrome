@@ -59,13 +59,19 @@ export class LosslessAPI {
                     if (response.ok) {
                         return response;
                     }
+                    
+                    if (response.status === 404) {
+                        return response; // Return 404 response to be handled by caller
+                    }
 
                     if (response.status === 401) {
                         let errorData;
                         try {
                             errorData = await response.clone().json();
                         } catch (e) {
-                            console.warn("Failed to parse 401 error response JSON", e);
+                            if (__DEV__) {
+                                console.warn("Failed to parse 401 error response JSON", e);
+                            }
                             // If JSON parsing fails for 401, treat it as a general failure for this mirror
                             lastError = new Error(`Authentication failed for ${url}.`);
                             break; // Move to next base URL
@@ -231,7 +237,9 @@ export class LosslessAPI {
                 return match ? match[0] : null;
             }
         } catch (error) {
-            console.error('Failed to decode manifest:', error);
+            if (__DEV__) {
+                console.error('Failed to decode manifest:', error);
+            }
             return null;
         }
         return null;
@@ -253,7 +261,9 @@ export class LosslessAPI {
             await this.cache.set('search_tracks', query, result);
             return result;
         } catch (error) {
-            console.error('Track search failed:', error);
+            if (__DEV__) {
+                console.error('Track search failed:', error);
+            }
             return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
         }
     }
@@ -274,7 +284,9 @@ export class LosslessAPI {
             await this.cache.set('search_artists', query, result);
             return result;
         } catch (error) {
-            console.error('Artist search failed:', error);
+            if (__DEV__) {
+                console.error('Artist search failed:', error);
+            }
             return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
         }
     }
@@ -295,16 +307,23 @@ export class LosslessAPI {
             await this.cache.set('search_albums', query, result);
             return result;
         } catch (error) {
-            console.error('Album search failed:', error);
+            if (__DEV__) {
+                console.error('Album search failed:', error);
+            }
             return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
         }
     }
 
-    async getAlbum(id: string | number): Promise<AlbumDetails> {
+    async getAlbum(id: string | number): Promise<AlbumDetails | null> {
         const cached = await this.cache.get<AlbumDetails>('album', id);
         if (cached) return cached;
 
         const response = await this.fetchWithRetry(`/album/?id=${id}`);
+        
+        if (response.status === 404) {
+            return null; // Album not found
+        }
+
         const data = await response.json();
         const entries = Array.isArray(data) ? data : [data];
 
@@ -350,7 +369,9 @@ export class LosslessAPI {
         let rawArtist = Array.isArray(primaryData) ? primaryData[0] : primaryData;
 
         if (rawArtist && rawArtist.status === 401) {
-            console.warn(`API authentication error for artist ${artistId} (primary details): ${rawArtist.userMessage || 'Token expired or invalid.'}`);
+            if (__DEV__) {
+                console.warn(`API authentication error for artist ${artistId} (primary details): ${rawArtist.userMessage || 'Token expired or invalid.'}`);
+            }
             // Let rawArtist be the 401 error object to be handled by ArtistDetails.tsx as name fallback
         }
 
@@ -405,7 +426,9 @@ export class LosslessAPI {
                 .sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0))
                 .slice(0, 10);
         } catch (error: any) {
-            console.error(`Failed to fetch artist content for ${artistId}:`, error);
+            if (__DEV__) {
+                console.error(`Failed to fetch artist content for ${artistId}:`, error);
+            }
             // If content fetching fails, albums and tracks remain empty arrays.
             // We can also set an error message here if we want to display it
             // on the ArtistDetailsPage related to content (not implemented now).
@@ -566,7 +589,9 @@ export class LosslessAPI {
             if (error.name === 'AbortError') {
                 throw error;
             }
-            console.error("Download failed:", error);
+            if (__DEV__) {
+                console.error("Download failed:", error);
+            }
             if (error.message === RATE_LIMIT_ERROR_MESSAGE) {
                 throw error;
             }

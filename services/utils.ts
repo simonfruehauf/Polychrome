@@ -257,7 +257,6 @@ export const testMirrorLatency = async (mirrorUrl: string, useProxy: boolean): P
             return { url: mirrorUrl, latency: Infinity, isProxied: useProxy };
         }
     } catch (error) {
-        console.error(`Failed to test mirror latency for ${mirrorUrl} ${useProxy ? '(proxied)' : '(direct)'}:`, error);
         return { url: mirrorUrl, latency: Infinity, isProxied: useProxy };
     }
     const end = performance.now();
