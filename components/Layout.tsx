@@ -96,52 +96,16 @@ const Layout: React.FC = () => {
         }
 
         try {
+            const simpleCallback = (tokenResponse: any) => {
+                console.log('Simple callback executed. tokenResponse:', tokenResponse);
+            };
+
             const client = window.google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CLIENT_ID,
                 scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file email profile openid',
-                callback: async (tokenResponse: any) => {
-                    console.log('Google callback invoked. tokenResponse:', tokenResponse);
-                    if (tokenResponse && tokenResponse.access_token) {
-                    console.log('Google tokenResponse received:', tokenResponse);
-                    // Set the access token for Google Drive service
-                    googleDriveService.setAccessToken(tokenResponse.access_token);
-                    
-                    try {
-                        const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                            headers: {
-                                'Authorization': `Bearer ${tokenResponse.access_token}`
-                            }
-                        });
-                        
-                        if (userInfoResponse.ok) {
-                            const userData = await userInfoResponse.json();
-                            console.log('Google user info fetched:', userData);
-                            const userProfile = {
-                                name: userData.name,
-                                email: userData.email,
-                                picture: userData.picture,
-                                accessToken: tokenResponse.access_token
-                            };
-                            setUser(userProfile);
-                            localStorage.setItem('opentidal_user', JSON.stringify(userProfile));
-                            
-                            // Sync all local playlists to Google Drive first
-                            try {
-                                await syncAllPlaylistsToGoogle();
-                            } catch (error) {
-                                console.error("Failed to sync playlists on login:", error);
-                            }
-                            
-                            // Then load any playlists from Google Drive
-                            await loadPlaylistsFromGoogle();
-                        }
-                    } catch (error) {
-                        console.error("Failed to fetch user profile", error);
-                    }
-                }
-            },
-        });
-
+                callback: simpleCallback,
+            });
+            console.log('Google client object created:', client);
             console.log('Calling client.requestAccessToken()...');
             client.requestAccessToken();
         } catch (error: any) {
