@@ -69,23 +69,39 @@ const Layout: React.FC = () => {
         // Removed automatic navigation on debouncedSearchTerm change
     }, [debouncedSearchTerm, navigate, location.pathname]);
 
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            if (window.google) {
+                console.log('window.google is loaded.');
+            } else {
+                console.log('window.google is NOT loaded yet. Waiting for GSI script.');
+            }
+        }
+    }, []);
+
     const handleGoogleLogin = () => {
+        console.log('Attempting Google login...');
+        console.log('GOOGLE_CLIENT_ID used:', GOOGLE_CLIENT_ID);
+
         if (typeof window === 'undefined' || !window.google) {
+            console.error("Google Sign-In is not loaded. Please check your internet connection or GSI script loading.");
             alert("Google Sign-In is not loaded. Please check your internet connection.");
             return;
         }
 
         if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID_HERE') {
+            console.error("Please configure a valid Google Client ID in the code.");
             alert("Please configure a valid Google Client ID in the code.");
             return;
         }
 
-        const client = window.google.accounts.oauth2.initTokenClient({
-            client_id: GOOGLE_CLIENT_ID,
-            scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file email profile openid',
-            callback: async (tokenResponse: any) => {
-                console.log('Google callback invoked. tokenResponse:', tokenResponse);
-                if (tokenResponse && tokenResponse.access_token) {
+        try {
+            const client = window.google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file email profile openid',
+                callback: async (tokenResponse: any) => {
+                    console.log('Google callback invoked. tokenResponse:', tokenResponse);
+                    if (tokenResponse && tokenResponse.access_token) {
                     console.log('Google tokenResponse received:', tokenResponse);
                     // Set the access token for Google Drive service
                     googleDriveService.setAccessToken(tokenResponse.access_token);
