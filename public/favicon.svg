@@ -1,4 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <circle cx="50" cy="50" r="50" fill="#8B5CF6"/>
-  <text x="50" y="50" font-family="Arial, sans-serif" font-size="60" fill="white" text-anchor="middle" dy=".3em">P</text>
+<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+	<style>
+		.s0 { fill: #8e00e8 } 
+		.s1 { fill: #0532f4 } 
+		.s2 { fill: #051042 } 
+	</style>
+	<path id="Shape 1" fill-rule="evenodd" class="s0" d="m965.82 58.18v596.04h-596.04v-596.04z"/>
+	<path id="Shape 1 copy" fill-rule="evenodd" class="s1" d="m654.22 369.78v596.04h-596.04v-596.04z"/>
+	<path id="Shape 2" fill-rule="evenodd" class="s2" d="m654.22 369.78v284.44h-284.44v-284.44z"/>
 </svg>
