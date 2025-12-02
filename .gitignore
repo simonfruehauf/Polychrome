@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 GOOGLE_AUTH_SETUP.md
 .gemini/
+.references/
