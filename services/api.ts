@@ -10,7 +10,7 @@ export class LosslessAPI {
     private streamCache: Map<string, string>;
 
     constructor() {
-        this.settings = new Settings();
+        this.settings = Settings.getInstance();
         this.cache = new APICache({
             maxSize: 200,
             ttl: 1000 * 60 * 30

@@ -1,3 +1,4 @@
+import React from 'react';
 import LazyImage from './LazyImage';
 import { useLibrary } from '../context/LibraryContext';
 import { X } from 'lucide-react';

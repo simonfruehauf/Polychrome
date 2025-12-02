@@ -11,8 +11,8 @@ import ArtistDetailsPage from './pages/ArtistDetails';
 import AlbumDetailsPage from './pages/AlbumDetails';
 import PlaylistDetails from './pages/PlaylistDetails';
 import ConfirmDeleteModal from './components/ConfirmDeleteModal';
-
 import CreatePlaylistModal from './components/CreatePlaylistModal';
+import SettingsPage from './pages/Settings'; // Import the new SettingsPage
 
 const App: React.FC = () => {
   return (
@@ -31,6 +31,7 @@ const App: React.FC = () => {
                             <Route path="artist/:id" element={<ArtistDetailsPage />} />
                             <Route path="album/:id" element={<AlbumDetailsPage />} />
                             <Route path="playlist/:id" element={<PlaylistDetails />} />
+                            <Route path="settings" element={<SettingsPage />} /> {/* Add the new route */}
                         </Route>
                     </Routes>
                 </Router>
