@@ -20,6 +20,7 @@ declare global {
                         client_id: string;
                         scope: string;
                         callback: (response: any) => void;
+                        error_callback?: (error: any) => void;
                     }) => {
                         requestAccessToken: () => void;
                     };
@@ -31,8 +32,7 @@ declare global {
 
 import LazyImage from './LazyImage';
 
-//const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '63434169086-8mcheesofd88bic8ktemlqmhkho5b801.apps.googleusercontent.com';
-const GOOGLE_CLIENT_ID = '63434169086-8mcheesofd88bic8ktemlqmhkho5b801.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '63434169086-8mcheesofd88bic8ktemlqmhkho5b801.apps.googleusercontent.com';
 
 const Layout: React.FC = () => {
     const { currentTrack } = usePlayer();
@@ -98,8 +98,19 @@ const Layout: React.FC = () => {
             const client = window.google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CLIENT_ID,
                 scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file email profile openid',
+                error_callback: (error: any) => {
+                    console.error("Google Sign-In error:", error);
+                    alert(`Google Sign-In error: ${error.type} - ${error.message}`);
+                },
                 callback: async (tokenResponse: any) => {
                     console.log('Google callback invoked. tokenResponse:', tokenResponse);
+
+                    if (tokenResponse && tokenResponse.error) {
+                        console.error("Google authentication error:", tokenResponse.error);
+                        alert(`Google authentication error: ${tokenResponse.error}`);
+                        return;
+                    }
+
                     if (tokenResponse && tokenResponse.access_token) {
                         console.log('Google tokenResponse received:', tokenResponse);
                         
