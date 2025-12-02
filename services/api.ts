@@ -9,8 +9,8 @@ export class LosslessAPI {
     private cache: APICache;
     private streamCache: Map<string, string>;
 
-    constructor() {
-        this.settings = Settings.getInstance();
+    constructor(settings: Settings) {
+        this.settings = settings;
         this.cache = new APICache({
             maxSize: 200,
             ttl: 1000 * 60 * 30
@@ -40,13 +40,17 @@ export class LosslessAPI {
         const maxRetries = 3;
         let lastError: any = null;
 
-        for (const baseUrl of instances) {
-            const url = baseUrl.endsWith('/')
-                ? `${baseUrl}${relativePath.substring(1)}`
-                : `${baseUrl}${relativePath}`;
+                                for (const baseUrl of instances) {
 
-            for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                try {
+                                    const url = baseUrl.endsWith('/')
+
+                                        ? `${baseUrl}${relativePath.substring(1)}`
+
+                                        : `${baseUrl}${relativePath}`;
+
+                    
+
+                                    for (let attempt = 1; attempt <= maxRetries; attempt++) {                try {
                     const response = await fetch(url, { 
                         signal: options.signal,
                         mode: 'cors'
@@ -61,10 +65,24 @@ export class LosslessAPI {
                     }
 
                     if (response.status === 401) {
-                         if (attempt < maxRetries) {
-                            await delay(200 * attempt);
-                            continue;
+                        let errorData;
+                        try {
+                            errorData = await response.clone().json();
+                        } catch (e) {
+                            console.warn("Failed to parse 401 error response JSON", e);
                         }
+
+                        if (errorData?.subStatus === 11002) {
+                            lastError = new Error(errorData?.userMessage || 'Authentication failed');
+                            if (attempt < maxRetries) {
+                                await delay(200 * attempt);
+                                continue;
+                            }
+                        }
+                        // If it's a 401 but not subStatus 11002, or parsing failed,
+                        // treat it as a general 401 for this mirror and move to the next.
+                        lastError = new Error(`Authentication failed for ${url}. Trying next mirror.`);
+                        break; 
                     }
 
                     if (response.status >= 500 && attempt < maxRetries) {
@@ -314,13 +332,15 @@ export class LosslessAPI {
         const cached = await this.cache.get<ArtistDetails>('artist', artistId);
         if (cached) return cached;
 
-        const [primaryResponse, contentResponse] = await Promise.all([
-            this.fetchWithRetry(`/artist/?id=${artistId}`),
-            this.fetchWithRetry(`/artist/?f=${artistId}`)
-        ]);
-
+        // Fetch primary artist details first
+        const primaryResponse = await this.fetchWithRetry(`/artist/?id=${artistId}`);
         const primaryData = await primaryResponse.json();
-        const rawArtist = Array.isArray(primaryData) ? primaryData[0] : primaryData;
+        let rawArtist = Array.isArray(primaryData) ? primaryData[0] : primaryData;
+
+        if (rawArtist && rawArtist.status === 401) {
+            console.warn(`API authentication error for artist ${artistId} (primary details): ${rawArtist.userMessage || 'Token expired or invalid.'}`);
+            // Let rawArtist be the 401 error object to be handled by ArtistDetails.tsx as name fallback
+        }
 
         if (!rawArtist) throw new Error('Primary artist details not found.');
 
@@ -330,40 +350,52 @@ export class LosslessAPI {
             name: rawArtist.name || 'Unknown Artist'
         };
 
-        const contentData = await contentResponse.json();
-        const entries = Array.isArray(contentData) ? contentData : [contentData];
+        // Fetch content data separately, and handle errors gracefully
+        let albums: Album[] = [];
+        let tracks: Track[] = [];
 
-        const albumMap = new Map();
-        const trackMap = new Map();
+        try {
+            const contentResponse = await this.fetchWithRetry(`/artist/?f=${artistId}`);
+            const contentData = await contentResponse.json();
+            const entries = Array.isArray(contentData) ? contentData : [contentData];
 
-        const isTrack = (v: any) => v?.id && v.duration && v.album;
-        const isAlbum = (v: any) => v?.id && 'numberOfTracks' in v;
+            const albumMap = new Map();
+            const trackMap = new Map();
 
-        const scan = (value: any, visited = new Set()) => {
-            if (!value || typeof value !== 'object' || visited.has(value)) return;
-            visited.add(value);
+            const isTrack = (v: any) => v?.id && v.duration && v.album;
+            const isAlbum = (v: any) => v?.id && 'numberOfTracks' in v;
 
-            if (Array.isArray(value)) {
-                value.forEach(item => scan(item, visited));
-                return;
-            }
+            const scan = (value: any, visited = new Set()) => {
+                if (!value || typeof value !== 'object' || visited.has(value)) return;
+                visited.add(value);
 
-            const item = value.item || value;
-            if (isAlbum(item)) albumMap.set(item.id, this.prepareAlbum(item));
-            if (isTrack(item)) trackMap.set(item.id, this.prepareTrack(item));
+                if (Array.isArray(value)) {
+                    value.forEach(item => scan(item, visited));
+                    return;
+                }
 
-            Object.values(value).forEach(nested => scan(nested, visited));
-        };
+                const item = value.item || value;
+                if (isAlbum(item)) albumMap.set(item.id, this.prepareAlbum(item));
+                if (isTrack(item)) trackMap.set(item.id, this.prepareTrack(item));
 
-        entries.forEach(entry => scan(entry));
+                Object.values(value).forEach(nested => scan(nested, visited));
+            };
 
-        const albums = Array.from(albumMap.values()).sort((a: any, b: any) =>
-            new Date(b.releaseDate || 0).getTime() - new Date(a.releaseDate || 0).getTime()
-        );
+            entries.forEach(entry => scan(entry));
 
-        const tracks = Array.from(trackMap.values())
-            .sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0))
-            .slice(0, 10);
+            albums = Array.from(albumMap.values()).sort((a: any, b: any) =>
+                new Date(b.releaseDate || 0).getTime() - new Date(a.releaseDate || 0).getTime()
+            );
+
+            tracks = Array.from(trackMap.values())
+                .sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0))
+                .slice(0, 10);
+        } catch (error: any) {
+            console.error(`Failed to fetch artist content for ${artistId}:`, error);
+            // If content fetching fails, albums and tracks remain empty arrays.
+            // We can also set an error message here if we want to display it
+            // on the ArtistDetailsPage related to content (not implemented now).
+        }
 
         const result = { ...artist, albums, tracks };
 
@@ -436,22 +468,106 @@ export class LosslessAPI {
         let streamUrl;
         if (lookup.originalTrackUrl) {
             streamUrl = lookup.originalTrackUrl;
-        } else if (lookup.info && lookup.info.manifest) {
+        } else {
             streamUrl = this.extractStreamUrlFromManifest(lookup.info.manifest);
-        }
-
-        if (!streamUrl) {
-            console.error('Lookup failed for ID:', id, lookup);
-            throw new Error('Could not resolve stream URL. Track might be restricted or manifest unavailable.');
+            if (!streamUrl) {
+                throw new Error('Could not resolve stream URL');
+            }
         }
 
         this.streamCache.set(cacheKey, streamUrl);
         return streamUrl;
     }
 
+    async downloadTrack(id: string | number, quality = 'LOSSLESS', filename: string, options: { onProgress?: (progress: { stage: string; receivedBytes: number; totalBytes?: number }) => void; signal?: AbortSignal } = {}): Promise<void> {
+        const { onProgress } = options;
+
+        try {
+            const lookup = await this.getTrack(id, quality);
+            let streamUrl;
+
+            if (lookup.originalTrackUrl) {
+                streamUrl = lookup.originalTrackUrl;
+            } else {
+                streamUrl = this.extractStreamUrlFromManifest(lookup.info.manifest);
+                if (!streamUrl) {
+                    throw new Error('Could not resolve stream URL');
+                }
+            }
+
+            const response = await fetch(streamUrl, {
+                cache: 'no-store',
+                signal: options.signal
+            });
+
+            if (!response.ok) {
+                throw new Error(`Fetch failed: ${response.status}`);
+            }
+
+            const contentLength = response.headers.get('Content-Length');
+            const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
+
+            let receivedBytes = 0;
+
+            if (response.body && onProgress) {
+                const reader = response.body.getReader();
+                const chunks = [];
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    if (value) {
+                        chunks.push(value);
+                        receivedBytes += value.byteLength;
+
+                        onProgress({
+                            stage: 'downloading',
+                            receivedBytes,
+                            totalBytes: totalBytes || undefined
+                        });
+                    }
+                }
+
+                const blob = new Blob(chunks, { type: response.headers.get('Content-Type') || 'audio/flac' });
+                this.triggerDownload(blob, filename);
+            } else {
+                const blob = await response.blob();
+                if (onProgress) {
+                    onProgress({
+                        stage: 'downloading',
+                        receivedBytes: blob.size,
+                        totalBytes: blob.size
+                    });
+                }
+                this.triggerDownload(blob, filename);
+            }
+        } catch (error: any) {
+            if (error.name === 'AbortError') {
+                throw error;
+            }
+            console.error("Download failed:", error);
+            if (error.message === RATE_LIMIT_ERROR_MESSAGE) {
+                throw error;
+            }
+            throw new Error('Download failed. The stream may require a proxy.');
+        }
+    }
+
+    private triggerDownload(blob: Blob, filename: string): void {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
     getCoverUrl(id?: string, size = '1280'): string {
         if (!id) {
-            return `https://picsum.photos/300/300?grayscale`;
+            return `https://picsum.photos/seed/${Math.random()}/${size}`;
         }
         const formattedId = id.replace(/-/g, '/');
         return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
@@ -459,11 +575,11 @@ export class LosslessAPI {
 
     getArtistPictureUrl(id?: string, size = '750'): string {
         if (!id) {
-            return `https://picsum.photos/300/300?blur`;
+            return `https://picsum.photos/seed/${Math.random()}/${size}`;
         }
         const formattedId = id.replace(/-/g, '/');
         return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
     }
 }
 
-export const api = new LosslessAPI();
+export const api = new LosslessAPI(Settings.getInstance());
