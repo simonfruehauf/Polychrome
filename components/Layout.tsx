@@ -142,7 +142,11 @@ const Layout: React.FC = () => {
             },
         });
 
-        client.requestAccessToken();
+            client.requestAccessToken();
+        } catch (error: any) {
+            console.error("Error during Google authentication initiation:", error);
+            alert("Error initiating Google login. See console for details.");
+        }
     };
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
