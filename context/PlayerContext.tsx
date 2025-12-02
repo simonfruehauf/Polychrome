@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
-import { Track } from '../types';
+import { Track, Quality } from '../types'; // Import Quality type
 import { api } from '../services/api';
 import { useToast } from './ToastContext';
 
@@ -19,6 +19,7 @@ interface PlayerContextType {
   repeatMode: RepeatMode;
   isQueueOpen: boolean;
   isLoading: boolean;
+  quality: Quality; // Add quality
   playTrack: (track: Track) => Promise<void>;
   playContext: (tracks: Track[], startIndex?: number, title?: string) => void;
   playContextTrack: (index: number) => void;
@@ -35,6 +36,7 @@ interface PlayerContextType {
   toggleShuffle: () => void;
   toggleRepeat: () => void;
   toggleQueue: () => void;
+  setQuality: (newQuality: Quality) => void; // Add setQuality
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -52,18 +54,25 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   
-  const [volume, setVolumeState] = useState(0.5);
+  const [volume, setVolumeState] = useState(() => {
+    const savedVolume = localStorage.getItem('volume');
+    return savedVolume ? parseFloat(savedVolume) : 0.7;
+  });
   const [isShuffle, setIsShuffle] = useState(false);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('OFF');
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [quality, setQualityState] = useState<Quality>(() => {
+    return (localStorage.getItem('playback-quality') as Quality) || 'LOSSLESS';
+  });
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { showToast } = useToast();
 
   useEffect(() => {
     audioRef.current = new Audio();
-    audioRef.current.volume = volume;
+    audioRef.current.volume = volume * volume; // Apply quadratic curve
+    audioRef.current.preload = 'auto'; // Preload audio
 
     const audio = audioRef.current;
 
@@ -84,11 +93,17 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const setVolume = useCallback((val: number) => {
     const clamped = Math.max(0, Math.min(1, val));
     setVolumeState(clamped);
+    localStorage.setItem('volume', clamped.toString()); // Save volume to local storage
     if (audioRef.current) {
-        // Apply a quadratic curve for a more natural perceived logarithmic response
-        audioRef.current.volume = clamped * clamped;
+        audioRef.current.volume = clamped * clamped; // Apply a quadratic curve for a more natural perceived logarithmic response
     }
   }, []);
+
+  const setQuality = useCallback((newQuality: Quality) => {
+    setQualityState(newQuality);
+    localStorage.setItem('playback-quality', newQuality); // Save quality to local storage
+    showToast(`Playback quality set to ${newQuality}`);
+  }, [showToast]);
 
   const toggleShuffle = useCallback(() => {
       setIsShuffle(prev => {
@@ -149,7 +164,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setCurrentTrack(track);
       setCurrentTime(0);
 
-      const streamUrl = await api.getStreamUrl(track.id, 'LOSSLESS');
+      const streamUrl = await api.getStreamUrl(track.id, quality); // Use context quality
       
       audioRef.current.src = streamUrl;
       if (autoPlay) {
@@ -175,7 +190,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setIsPlaying(false);
       setIsLoading(false);
     }
-  }, [showToast]);
+  }, [showToast, quality]); // Add quality to useCallback dependencies
 
   // Plays a single track, acting as a mini-context of 1
   const playTrack = useCallback(async (track: Track) => {
@@ -192,7 +207,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setUserQueue([]); // Clear user queue when starting a new context
       setContextQueue(tracks);
       setContextIndex(startIndex);
-      setContextTitle(title);
+      if (title) setContextTitle(title); // This line was changed in the file
       if (tracks.length > startIndex) {
           loadTrack(tracks[startIndex]);
       }
@@ -382,7 +397,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       toggleShuffle,
       toggleRepeat,
       toggleQueue,
-      isLoading
+      isLoading,
+      quality, // Provide quality
+      setQuality // Provide setQuality
     }}>
       {children}
     </PlayerContext.Provider>

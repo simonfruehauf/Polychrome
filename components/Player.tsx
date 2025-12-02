@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react'; // Added useState
 import { usePlayer } from '../context/PlayerContext';
 import { api } from '../services/api';
 import { formatDuration } from '../services/utils';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Volume1, VolumeX, ListMusic, Shuffle, Repeat, Repeat1, Loader2 } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Volume1, VolumeX, ListMusic, Shuffle, Repeat, Repeat1, Loader2, Download } from 'lucide-react'; // Import Download icon
+import { downloadCurrentTrack } from '../services/downloads'; // Import downloadCurrentTrack
 
 const Player: React.FC = () => {
   const { 
@@ -22,10 +23,11 @@ const Player: React.FC = () => {
     toggleRepeat,
     toggleQueue,
     isQueueOpen,
-    isLoading
+    isLoading,
+    quality // Get quality from usePlayer
   } = usePlayer();
 
-  // Removed the early return if !currentTrack to keep the player visible
+  const [isDownloading, setIsDownloading] = useState(false); // New state for download loading
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!currentTrack) return;
@@ -40,6 +42,19 @@ const Player: React.FC = () => {
       if (volume === 0) return <VolumeX size={20} className="text-neutral-400" />;
       if (volume < 0.5) return <Volume1 size={20} className="text-neutral-400" />;
       return <Volume2 size={20} className="text-neutral-400" />;
+  };
+
+  const handleDownloadCurrentTrack = async () => {
+    if (!currentTrack) return;
+    setIsDownloading(true);
+    try {
+        await downloadCurrentTrack(currentTrack, quality);
+    } catch (error) {
+        console.error('Failed to download current track:', error);
+        alert('Failed to download current track: ' + (error as Error).message);
+    } finally {
+        setIsDownloading(false);
+    }
   };
 
   return (
@@ -143,6 +158,22 @@ const Player: React.FC = () => {
 
       {/* Volume & Extras */}
       <div className="flex items-center justify-end w-[30%] space-x-4">
+        <button 
+            onClick={handleDownloadCurrentTrack}
+            className={`transition bg-transparent border-none p-0 flex items-center ${isDownloading ? 'text-neutral-600' : 'text-neutral-400 hover:text-white'}`}
+            title="Download Current Track"
+            disabled={!currentTrack || isLoading || isDownloading}
+        >
+            {isDownloading ? (
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            ) : (
+                <Download size={20} />
+            )}
+        </button>
+
         <button 
             onClick={toggleQueue}
             className={`transition bg-transparent border-none p-0 flex items-center ${isQueueOpen ? 'text-green-500' : 'text-neutral-400 hover:text-white'}`} 

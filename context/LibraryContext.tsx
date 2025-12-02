@@ -65,7 +65,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     try {
       await googleDriveService.savePlaylist(playlist);
-      console.log(`Playlist ""${playlist.name}"" auto-synced to Google Drive`);
+  
     } catch (error) {
       console.error('Failed to auto-sync playlist to Google Drive:', error);
     }
@@ -83,7 +83,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
       );
       setPlaylists(updated);
       localStorage.setItem('opentidal_playlists', JSON.stringify(updated));
-      console.log(`Playlist ""${playlist.name}"" synced to Google Drive`);
+  
     } catch (error) {
       console.error('Failed to sync playlist to Google Drive:', error);
       throw error;
@@ -95,7 +95,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const { playlists: googlePlaylists, success } = await googleDriveService.loadAllPlaylists();
       
       if (!success || googlePlaylists.length === 0) {
-        console.log('No playlists found on Google Drive');
+    
         return;
       }
 
@@ -115,7 +115,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const merged = Array.from(playlistMap.values());
         setPlaylists(merged);
         localStorage.setItem('opentidal_playlists', JSON.stringify(merged));
-        console.log(`Loaded ${newCount} new playlists from Google Drive`);
+    
       }
     } catch (error) {
       console.error('Failed to load playlists from Google Drive:', error);
@@ -124,7 +124,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const syncAllPlaylistsToGoogle = async () => {
     try {
-      console.log(`Syncing ${playlists.length} playlists to Google Drive...`);
+  
       let syncedCount = 0;
 
       for (const playlist of playlists) {
@@ -142,7 +142,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const updated = playlists.map(p => ({ ...p, syncedToGoogle: true }));
       setPlaylists(updated);
       localStorage.setItem('opentidal_playlists', JSON.stringify(updated));
-      console.log(`Successfully synced ${syncedCount} playlists to Google Drive`);
+  
     } catch (error) {
       console.error('Failed to sync playlists to Google Drive:', error);
       throw error;
@@ -171,7 +171,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       // First, delete from Google Drive
       await googleDriveService.deletePlaylist(playlistToDelete.name);
-      console.log(`Playlist ""${playlistToDelete.name}"" deleted from Google Drive.`);
+  
 
       // Then, remove from local state
       const updatedPlaylists = playlists.filter(p => p.id !== id);

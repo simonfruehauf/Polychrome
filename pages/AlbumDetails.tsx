@@ -4,8 +4,9 @@ import { api } from '../services/api';
 import { AlbumDetails } from '../types';
 import { usePlayer } from '../context/PlayerContext';
 import { useLibrary } from '../context/LibraryContext';
-import { Play, Plus, Clock, ListPlus } from 'lucide-react';
+import { Play, Plus, Clock, ListPlus, Download } from 'lucide-react'; // Import Download icon
 import { formatDuration } from '../services/utils';
+import { downloadAlbumAsZip } from '../services/downloads'; // Import downloadAlbumAsZip
 
 import LazyImage from '../components/LazyImage';
 
@@ -13,7 +14,8 @@ const AlbumDetailsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [data, setData] = useState<AlbumDetails | null>(null);
     const [loading, setLoading] = useState(true);
-    const { playContext, addToQueue } = usePlayer();
+    const [isDownloading, setIsDownloading] = useState(false); // New state for download loading
+    const { playContext, quality } = usePlayer(); // Get quality from usePlayer
     const { openAddToPlaylistModal } = useLibrary();
 
     useEffect(() => {
@@ -30,6 +32,19 @@ const AlbumDetailsPage: React.FC = () => {
 
     const handlePlayAll = () => {
         playContext(data.tracks, 0, data.album.title);
+    };
+
+    const handleDownloadAlbum = async () => {
+        if (!data) return;
+        setIsDownloading(true);
+        try {
+            await downloadAlbumAsZip(data.album, data.tracks, quality);
+        } catch (error) {
+            console.error('Failed to download album:', error);
+            alert('Failed to download album: ' + (error as Error).message);
+        } finally {
+            setIsDownloading(false);
+        }
     };
 
     return (
@@ -58,6 +73,21 @@ const AlbumDetailsPage: React.FC = () => {
                             className="bg-white text-black px-8 py-3 rounded-full font-bold hover:scale-105 transition flex items-center gap-2"
                         >
                             <Play fill="black" size={20} /> Play
+                        </button>
+                        <button 
+                            onClick={handleDownloadAlbum}
+                            className="bg-neutral-800 text-white px-8 py-3 rounded-full font-bold hover:scale-105 transition flex items-center gap-2"
+                            disabled={isDownloading}
+                        >
+                            {isDownloading ? (
+                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            ) : (
+                                <Download size={20} />
+                            )}
+                            Download
                         </button>
                     </div>
                 </div>
@@ -111,3 +141,4 @@ const AlbumDetailsPage: React.FC = () => {
 };
 
 export default AlbumDetailsPage;
+
