@@ -232,7 +232,7 @@ const Layout: React.FC = () => {
                             title="Sign in with Google"
                         >
                             <LogIn size={20} />
-                            <span className="hidden lg:block text-sm">Sign in</span>
+                            <span className="hidden lg:block text-sm">Sign in with Google</span>
                         </button>
                     )}
                 </div>
