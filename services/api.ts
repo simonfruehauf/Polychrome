@@ -40,18 +40,14 @@ export class LosslessAPI {
         const maxRetries = 3;
         let lastError: any = null;
 
-                                for (const baseUrl of instances) {
+        for (const baseUrl of instances) {
+            const url = baseUrl.endsWith('/')
+                ? `${baseUrl}${relativePath.substring(1)}`
+                : `${baseUrl}${relativePath}`;
 
-                                    const url = baseUrl.endsWith('/')
-
-                                        ? `${baseUrl}${relativePath.substring(1)}`
-
-                                        : `${baseUrl}${relativePath}`;
-
-                    
-
-                                    for (let attempt = 1; attempt <= maxRetries; attempt++) {                try {
-                    const response = await fetch(url, { 
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    const response = await fetch(url, {
                         signal: options.signal,
                         mode: 'cors'
                     });
@@ -70,19 +66,26 @@ export class LosslessAPI {
                             errorData = await response.clone().json();
                         } catch (e) {
                             console.warn("Failed to parse 401 error response JSON", e);
+                            // If JSON parsing fails for 401, treat it as a general failure for this mirror
+                            lastError = new Error(`Authentication failed for ${url}.`);
+                            break; // Move to next base URL
                         }
 
                         if (errorData?.subStatus === 11002) {
                             lastError = new Error(errorData?.userMessage || 'Authentication failed');
                             if (attempt < maxRetries) {
                                 await delay(200 * attempt);
-                                continue;
+                                continue; // Retry the same URL for 11002
+                            } else {
+                                // If subStatus 11002 and retries exhausted, break to try next base URL
+                                lastError = new Error(errorData?.userMessage || 'Authentication failed. Retries exhausted.');
+                                break;
                             }
+                        } else {
+                            // If 401 but not subStatus 11002, break to try next base URL
+                            lastError = new Error(`Authentication failed for ${url}.`);
+                            break;
                         }
-                        // If it's a 401 but not subStatus 11002, or parsing failed,
-                        // treat it as a general 401 for this mirror and move to the next.
-                        lastError = new Error(`Authentication failed for ${url}. Trying next mirror.`);
-                        break; 
                     }
 
                     if (response.status >= 500 && attempt < maxRetries) {
