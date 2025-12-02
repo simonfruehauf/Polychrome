@@ -83,7 +83,68 @@ const SettingsPage: React.FC = () => {
     return (
         <div className="p-4 sm:p-6 lg:p-8">
             <h1 className="text-3xl font-bold text-white mb-8">Settings</h1>
-
+{/* Keyboard Shortcuts Help Area */}
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 mb-6">
+                <h2 className="text-2xl font-semibold text-white mb-4">Keyboard Shortcuts</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-neutral-300">
+                    <div className="flex justify-between items-center bg-neutral-800 p-3 rounded-md">
+                        <span className="font-medium">Play / Pause</span>
+                        <kbd className="kbd">Space</kbd>
+                    </div>
+                    <div className="flex justify-between items-center bg-neutral-800 p-3 rounded-md">
+                        <span className="font-medium">Next Track</span>
+                        <kbd className="kbd">Shift</kbd> + <kbd className="kbd">→</kbd>
+                    </div>
+                    <div className="flex justify-between items-center bg-neutral-800 p-3 rounded-md">
+                        <span className="font-medium">Previous Track</span>
+                        <kbd className="kbd">Shift</kbd> + <kbd className="kbd">←</kbd>
+                    </div>
+                    <div className="flex justify-between items-center bg-neutral-800 p-3 rounded-md">
+                        <span className="font-medium">Seek Forward 10s</span>
+                        <kbd className="kbd">→</kbd>
+                    </div>
+                    <div className="flex justify-between items-center bg-neutral-800 p-3 rounded-md">
+                        <span className="font-medium">Seek Backward 10s</span>
+                        <kbd className="kbd">←</kbd>
+                    </div>
+                    <div className="flex justify-between items-center bg-neutral-800 p-3 rounded-md">
+                        <span className="font-medium">Volume Up</span>
+                        <kbd className="kbd">↑</kbd>
+                    </div>
+                    <div className="flex justify-between items-center bg-neutral-800 p-3 rounded-md">
+                        <span className="font-medium">Volume Down</span>
+                        <kbd className="kbd">↓</kbd>
+                    </div>
+                    <div className="flex justify-between items-center bg-neutral-800 p-3 rounded-md">
+                        <span className="font-medium">Mute / Unmute</span>
+                        <kbd className="kbd">M</kbd>
+                    </div>
+                    <div className="flex justify-between items-center bg-neutral-800 p-3 rounded-md">
+                        <span className="font-medium">Toggle Shuffle</span>
+                        <kbd className="kbd">S</kbd>
+                    </div>
+                    <div className="flex justify-between items-center bg-neutral-800 p-3 rounded-md">
+                        <span className="font-medium">Toggle Repeat</span>
+                        <kbd className="kbd">R</kbd>
+                    </div>
+                    <div className="flex justify-between items-center bg-neutral-800 p-3 rounded-md">
+                        <span className="font-medium">Toggle Queue</span>
+                        <kbd className="kbd">Q</kbd>
+                    </div>
+                    <div className="flex justify-between items-center bg-neutral-800 p-3 rounded-md">
+                        <span className="font-medium">Focus Search</span>
+                        <kbd className="kbd">/</kbd>
+                    </div>
+                    <div className="flex justify-between items-center bg-neutral-800 p-3 rounded-md">
+                        <span className="font-medium">Close Modals / Panels</span>
+                        <kbd className="kbd">Esc</kbd>
+                    </div>
+                    <div className="flex justify-between items-center bg-neutral-800 p-3 rounded-md">
+                        <span className="font-medium">View Current Track Info (Album)</span>
+                        <kbd className="kbd">L</kbd>
+                    </div>
+                </div>
+            </div>
             {/* Playback Settings */}
             <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 mb-6">
                 <h2 className="text-2xl font-semibold text-white mb-4">Playback Settings</h2>
@@ -220,8 +281,6 @@ const SettingsPage: React.FC = () => {
                     )}
                 </div>
             </div>
-
-
         </div>
     );
 };

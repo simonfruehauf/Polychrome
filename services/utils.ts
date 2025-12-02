@@ -193,15 +193,19 @@ export const calculateTotalDuration = (tracks: Track[]): number => {
 };
 
 export const formatDuration = (seconds: number): string => {
-    if (!seconds || isNaN(seconds)) return '0 min';
+    if (!seconds || isNaN(seconds)) return '0:00';
 
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+
+    const formattedMinutes = String(minutes).padStart(2, '0');
+    const formattedSeconds = String(remainingSeconds).padStart(2, '0');
 
     if (hours > 0) {
-        return `${hours} hr ${minutes} min`;
+        return `${hours}:${formattedMinutes}:${formattedSeconds}`;
     }
-    return `${minutes} min`;
+    return `${minutes}:${formattedSeconds}`;
 };
 
 

@@ -38,7 +38,7 @@ export const useKeyboardShortcuts = () => {
         togglePlay();
         break;
       case 'arrowright':
-        if (event.shiftKey) {
+        if (event.ctrlKey) { // Changed from shiftKey to ctrlKey
           nextTrack();
         } else {
           if (audioRef.current && !isNaN(audioRef.current.duration)) {
@@ -50,7 +50,7 @@ export const useKeyboardShortcuts = () => {
         }
         break;
       case 'arrowleft':
-        if (event.shiftKey) {
+        if (event.ctrlKey) { // Changed from shiftKey to ctrlKey
           prevTrack();
         } else {
           if (audioRef.current && !isNaN(audioRef.current.duration)) {
