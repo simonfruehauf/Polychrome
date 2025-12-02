@@ -31,7 +31,7 @@ declare global {
 
 import LazyImage from './LazyImage';
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID_HERE';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '63434169086-8mcheesofd88bic8ktemlqmhkho5b801.apps.googleusercontent.com';
 
 const Layout: React.FC = () => {
     const { currentTrack } = usePlayer();
