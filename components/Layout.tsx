@@ -98,6 +98,7 @@ const Layout: React.FC = () => {
             const client = window.google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CLIENT_ID,
                 scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file email profile openid',
+                redirect_uri: window.location.origin, // Use redirect flow instead of popup
                 error_callback: (error: any) => {
                     console.error("Google Sign-In error:", error);
                     alert(`Google Sign-In error: ${error.type} - ${error.message}`);
@@ -153,7 +154,7 @@ const Layout: React.FC = () => {
                     }
                 },
             });
-            console.log('Calling client.requestAccessToken()...');
+            console.log('Calling client.requestAccessToken() with redirect...');
             client.requestAccessToken();
         } catch (error: any) {
             console.error("Error during Google authentication initiation:", error);
