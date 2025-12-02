@@ -84,6 +84,7 @@ const Layout: React.FC = () => {
             client_id: GOOGLE_CLIENT_ID,
             scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file email profile openid',
             callback: async (tokenResponse: any) => {
+                console.log('Google callback invoked. tokenResponse:', tokenResponse);
                 if (tokenResponse && tokenResponse.access_token) {
                     console.log('Google tokenResponse received:', tokenResponse);
                     // Set the access token for Google Drive service
