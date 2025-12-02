@@ -18,6 +18,7 @@ interface PlayerContextType {
   isShuffle: boolean;
   repeatMode: RepeatMode;
   isQueueOpen: boolean;
+  isLoading: boolean;
   playTrack: (track: Track) => Promise<void>;
   playContext: (tracks: Track[], startIndex?: number, title?: string) => void;
   playContextTrack: (index: number) => void;
@@ -55,6 +56,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isShuffle, setIsShuffle] = useState(false);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('OFF');
   const [isQueueOpen, setIsQueueOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { showToast } = useToast();
@@ -134,6 +136,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const loadTrack = useCallback(async (track: Track, autoPlay = true) => {
     if (!audioRef.current) return;
+    setIsLoading(true);
+    setIsPlaying(false); // Stop playing immediately visually
+
+    if (audioRef.current) {
+      audioRef.current.pause(); // Pause current audio
+      audioRef.current.src = ''; // Clear source to stop buffering
+    }
+
     try {
       setCurrentTrack(track);
       setCurrentTime(0);
@@ -145,6 +155,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           await audioRef.current.play();
           setIsPlaying(true);
       }
+      setIsLoading(false);
 
       if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
@@ -161,6 +172,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.error("Error playing track:", error);
       showToast("Error playing track. Access denied or rate limited.");
       setIsPlaying(false);
+      setIsLoading(false);
     }
   }, [showToast]);
 
@@ -368,7 +380,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setVolume,
       toggleShuffle,
       toggleRepeat,
-      toggleQueue
+      toggleQueue,
+      isLoading
     }}>
       {children}
     </PlayerContext.Provider>

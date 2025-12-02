@@ -2,7 +2,7 @@ import React from 'react';
 import { usePlayer } from '../context/PlayerContext';
 import { api } from '../services/api';
 import { formatDuration } from '../services/utils';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Volume1, VolumeX, ListMusic, Shuffle, Repeat, Repeat1 } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Volume1, VolumeX, ListMusic, Shuffle, Repeat, Repeat1, Loader2 } from 'lucide-react';
 
 const Player: React.FC = () => {
   const { 
@@ -21,7 +21,8 @@ const Player: React.FC = () => {
     repeatMode,
     toggleRepeat,
     toggleQueue,
-    isQueueOpen
+    isQueueOpen,
+    isLoading
   } = usePlayer();
 
   // Removed the early return if !currentTrack to keep the player visible
@@ -46,7 +47,11 @@ const Player: React.FC = () => {
       {/* Track Info */}
       <div className="flex items-center w-[30%] min-w-[180px]">
         <div className="relative mr-4 group">
-             {currentTrack?.album?.cover ? (
+            {isLoading ? (
+                <div className="w-14 h-14 bg-neutral-800 rounded flex items-center justify-center">
+                    <Loader2 size={24} className="text-neutral-400 animate-spin" />
+                </div>
+            ) : currentTrack?.album?.cover ? (
               <img 
                 src={api.getCoverUrl(currentTrack.album.cover, '80')} 
                 alt="Cover" 
@@ -76,31 +81,31 @@ const Player: React.FC = () => {
                 onClick={toggleShuffle} 
                 className={`transition ${isShuffle ? 'text-green-500' : 'text-neutral-400 hover:text-white'}`}
                 title="Shuffle"
-                disabled={!currentTrack}
+                disabled={!currentTrack || isLoading}
             >
                 <Shuffle size={18} />
             </button>
 
             <button 
                 onClick={prevTrack} 
-                className={`transition ${currentTrack ? 'text-neutral-400 hover:text-white' : 'text-neutral-600 cursor-default'}`}
-                disabled={!currentTrack}
+                className={`transition ${currentTrack && !isLoading ? 'text-neutral-400 hover:text-white' : 'text-neutral-600 cursor-default'}`}
+                disabled={!currentTrack || isLoading}
             >
                 <SkipBack size={20} fill="currentColor" />
             </button>
             
             <button 
                 onClick={togglePlay} 
-                className={`rounded-full p-2 transition ${currentTrack ? 'bg-white text-black hover:scale-105 active:scale-95' : 'bg-neutral-800 text-neutral-500 cursor-default'}`}
-                disabled={!currentTrack}
+                className={`rounded-full p-2 transition ${currentTrack && !isLoading ? 'bg-white text-black hover:scale-105 active:scale-95' : 'bg-neutral-800 text-neutral-500 cursor-default'}`}
+                disabled={!currentTrack || isLoading}
             >
                 {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-0.5" />}
             </button>
             
             <button 
                 onClick={nextTrack} 
-                className={`transition ${currentTrack ? 'text-neutral-400 hover:text-white' : 'text-neutral-600 cursor-default'}`}
-                disabled={!currentTrack}
+                className={`transition ${currentTrack && !isLoading ? 'text-neutral-400 hover:text-white' : 'text-neutral-600 cursor-default'}`}
+                disabled={!currentTrack || isLoading}
             >
                 <SkipForward size={20} fill="currentColor" />
             </button>
@@ -109,7 +114,7 @@ const Player: React.FC = () => {
                 onClick={toggleRepeat} 
                 className={`transition ${repeatMode !== 'OFF' ? 'text-green-500' : 'text-neutral-400 hover:text-white'}`}
                 title="Repeat"
-                disabled={!currentTrack}
+                disabled={!currentTrack || isLoading}
             >
                 {repeatMode === 'ONE' ? <Repeat1 size={18} /> : <Repeat size={18} />}
             </button>
@@ -124,11 +129,11 @@ const Player: React.FC = () => {
                 max={duration || 100}
                 value={currentTime}
                 onChange={handleSeek}
-                disabled={!currentTrack}
-                className={`absolute inset-0 w-full h-full opacity-0 z-10 ${currentTrack ? 'cursor-pointer' : ''}`}
+                disabled={!currentTrack || isLoading}
+                className={`absolute inset-0 w-full h-full opacity-0 z-10 ${currentTrack && !isLoading ? 'cursor-pointer' : ''}`}
               />
               <div 
-                className={`h-full rounded-full transition-colors ${currentTrack ? 'bg-white group-hover:bg-green-500' : 'bg-neutral-600'}`}
+                className={`h-full rounded-full transition-colors ${currentTrack && !isLoading ? 'bg-white group-hover:bg-green-500' : 'bg-neutral-600'}`}
                 style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
               />
           </div>
